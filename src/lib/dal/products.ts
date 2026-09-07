@@ -1,8 +1,5 @@
 import { Product, Category, CategoryId, FilterOptions } from '@/lib/types';
 
-/**
- * Verificación de sesión segura que nunca lanza excepciones
- */
 export async function verifySession(): Promise<{ userId: string; role: 'user' | 'admin' }> {
   return {
     userId: 'usr_guest_session_v2',
@@ -138,7 +135,7 @@ export const PRODUCTS: Product[] = [
     currency: 'USD',
     rating: 4.8,
     reviewsCount: 215,
-    image: 'https://images.unsplash.com/photo-1560090995-019306dfc786?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80',
     secondaryImage: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=800&q=80',
     isNew: false,
     isBestSeller: true,
@@ -358,9 +355,6 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
-/**
- * Consulta resiliente de productos desde el DAL
- */
 export async function getProducts(filters: FilterOptions = {}): Promise<{
   products: Product[];
   total: number;

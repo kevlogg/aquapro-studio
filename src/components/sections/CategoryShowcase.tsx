@@ -36,7 +36,7 @@ const CATEGORY_CARDS: CategoryCard[] = [
     name: 'Gorros 3D Silicona',
     tagline: 'Inyección anatómica sin costuras ni pliegues de arrastre',
     count: '3D Molded',
-    image: 'https://images.unsplash.com/photo-1560090995-019306dfc786?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80',
     badge: 'Dome 3D Cap',
     href: '/?category=gorros#catalogo',
   },
