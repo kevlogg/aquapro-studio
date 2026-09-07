@@ -4,11 +4,15 @@ import { Product, Category, CategoryId, FilterOptions } from '@/lib/types';
  * Simulación de verificación de sesión y permisos para el Data Access Layer (DAL)
  */
 export async function verifySession(): Promise<{ userId: string; role: 'user' | 'admin' }> {
-  // En un entorno de producción real, verificamos token JWT o sesión NextAuth/Supabase/Firebase
-  return {
-    userId: 'usr_guest_session_v2',
-    role: 'user',
-  };
+  try {
+    return {
+      userId: 'usr_guest_session_v2',
+      role: 'user',
+    };
+  } catch (e) {
+    console.error('Error en verifySession:', e);
+    return { userId: 'guest', role: 'user' };
+  }
 }
 
 export const CATEGORIES: Category[] = [
@@ -282,6 +286,81 @@ export const PRODUCTS: Product[] = [
     inStock: true,
     stockQuantity: 22,
   },
+  {
+    id: 'prod-007',
+    slug: 'aeroglide-hand-paddles',
+    name: 'AeroGlide Propulsion Paddles',
+    tagline: 'Desarrollo de potencia propulsiva y mecano-sensibilidad acuática',
+    categoryId: 'accesorios',
+    categoryName: 'Accesorios de Entreno',
+    price: 28.00,
+    originalPrice: 34.00,
+    currency: 'USD',
+    rating: 4.8,
+    reviewsCount: 63,
+    image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80',
+    secondaryImage: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=800&q=80',
+    isNew: false,
+    isBestSeller: true,
+    finaApproved: false,
+    hydrodynamicGrade: 'Propulsion Tech',
+    sizes: [
+      { code: 'S', label: 'Chico (Técnica & Velocidad)', inStock: true },
+      { code: 'M', label: 'Mediano (Fuerza General)', inStock: true },
+      { code: 'L', label: 'Grande (Potencia Máster)', inStock: true },
+    ],
+    colors: [
+      { name: 'Electric Cyan', hex: '#00E5FF' },
+      { name: 'Stealth Black', hex: '#0B192C' },
+    ],
+    description: 'Manoplas de natación anatómicas con orificios de flujo guiado que permiten sentir la presión del agua mientras fortalecen los dorsales y pectorales.',
+    features: [
+      { title: 'Tiras de Silicona Regulables', description: 'Ajuste personalizado alrededor de dedos y muñeca sin cortar la circulación.' },
+      { title: 'Orificios de Sensibilidad Hidro', description: 'Mejora la trayectoria de la brazada en la fase de agarre y tirón.' },
+    ],
+    specifications: {
+      'Material': 'Polipropileno Indeformable',
+      'Correas': 'Silicona Elástica Quirúrgica',
+    },
+    inStock: true,
+    stockQuantity: 40,
+  },
+  {
+    id: 'prod-008',
+    slug: 'hydrodry-mesh-backpack-45l',
+    name: 'HydroDry Mesh Backpack 45L',
+    tagline: 'Compartimento ventilado para secado rápido de equipo húmedo',
+    categoryId: 'accesorios',
+    categoryName: 'Accesorios de Entreno',
+    price: 75.00,
+    currency: 'USD',
+    rating: 4.9,
+    reviewsCount: 110,
+    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80',
+    secondaryImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+    isNew: true,
+    isBestSeller: true,
+    finaApproved: false,
+    hydrodynamicGrade: 'Heavy Duty 45L',
+    sizes: [
+      { code: '45L', label: 'Capacidad 45 Litros', inStock: true },
+    ],
+    colors: [
+      { name: 'Cyan & Ocean', hex: '#00E5FF' },
+      { name: 'All Black', hex: '#0F172A' },
+    ],
+    description: 'Mochila técnica de natación de 45L con base reforzada impermeable, funda acolchada para notebook o tablet, y bolsillo de red mesh respirable para secado automático de toalla, mallas y manoplas.',
+    features: [
+      { title: 'Base de Lona Alquitranada', description: 'Mantiene el interior seco incluso apoyando el bolso sobre pisos mojados del vestuario.' },
+      { title: 'Mosquetón de Acero Inoxidable', description: 'Permite colgar el bolso en la reja del natatorio o vestuario.' },
+    ],
+    specifications: {
+      'Capacidad': '45 Litros',
+      'Tejido': 'Poliéster 600D Ripstop + Red Mesh Respirable',
+    },
+    inStock: true,
+    stockQuantity: 28,
+  },
 ];
 
 /**
@@ -292,17 +371,14 @@ export async function getProducts(filters: FilterOptions = {}): Promise<{
   total: number;
   categories: Category[];
 }> {
-  // Validación de seguridad de la sesión DAL
   await verifySession();
 
   let filtered = [...PRODUCTS];
 
-  // Filtro por categoría
   if (filters.category && filters.category !== 'all') {
     filtered = filtered.filter((p) => p.categoryId === filters.category);
   }
 
-  // Filtro por búsqueda textual
   if (filters.search && filters.search.trim() !== '') {
     const q = filters.search.toLowerCase().trim();
     filtered = filtered.filter(
@@ -314,12 +390,10 @@ export async function getProducts(filters: FilterOptions = {}): Promise<{
     );
   }
 
-  // Filtro solo aprobados por FINA
   if (filters.finaOnly) {
     filtered = filtered.filter((p) => p.finaApproved === true);
   }
 
-  // Ordenamiento
   if (filters.sort) {
     switch (filters.sort) {
       case 'price-asc':
@@ -345,18 +419,12 @@ export async function getProducts(filters: FilterOptions = {}): Promise<{
   };
 }
 
-/**
- * Obtener producto individual por Slug o ID
- */
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   await verifySession();
   const product = PRODUCTS.find((p) => p.slug === slug || p.id === slug);
   return product || null;
 }
 
-/**
- * Categorías disponibles
- */
 export async function getCategories(): Promise<Category[]> {
   return CATEGORIES;
 }
