@@ -1,69 +1,153 @@
-import Image from "next/image";
+import { Suspense } from 'react';
+import Metadata from 'next';
+import { getProducts, getCategories } from '@/lib/dal/products';
+import { CategoryId } from '@/lib/types';
+import { HeroSection } from '@/components/sections/HeroSection';
+import { ProductFilters } from '@/components/product/ProductFilters';
+import { ProductGrid } from '@/components/product/ProductGrid';
+import { TestimonialsSection } from '@/components/sections/TestimonialsSection';
+import { FAQSection } from '@/components/sections/FAQSection';
+import { ProductGridSkeleton } from '@/components/common/Skeletons';
+import { getWebSiteJsonLd, getProductsJsonLd, getFaqJsonLd } from '@/lib/seo/schemas';
+import { ShieldCheck, Sparkles, Filter } from 'lucide-react';
 
-export default function Home() {
+interface PageProps {
+  searchParams: Promise<{
+    category?: CategoryId;
+    search?: string;
+    sort?: 'featured' | 'price-asc' | 'price-desc' | 'rating';
+    fina?: string;
+  }>;
+}
+
+export async function generateMetadata({ searchParams }: PageProps) {
+  const resolvedParams = await searchParams;
+  const category = resolvedParams.category;
+
+  if (category && category !== 'all') {
+    const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
+    return {
+      title: `${categoryTitle} de Natación Técnica`,
+      description: `Explora nuestra selección de ${category} de competición y entrenamiento homologados por World Aquatics.`,
+    };
+  }
+
+  return {
+    title: 'AQUAPRO Studio | Catálogo Oficial de Natación Técnica',
+    description: 'Catálogo completo de mallas de competición, antiparras espejadas y equipamiento para nadadores de élite.',
+  };
+}
+
+export default async function HomePage({ searchParams }: PageProps) {
+  const resolvedParams = await searchParams;
+
+  const currentCategory: CategoryId = resolvedParams.category || 'all';
+  const currentSearch = resolvedParams.search || '';
+  const currentSort = resolvedParams.sort || 'featured';
+  const finaOnly = resolvedParams.fina === 'true';
+
+  // Fetch data directly from Data Access Layer (DAL)
+  const { products, categories, total } = await getProducts({
+    category: currentCategory,
+    search: currentSearch,
+    sort: currentSort,
+    finaOnly,
+  });
+
+  // Prepare JSON-LD Structured Data
+  const websiteSchema = getWebSiteJsonLd();
+  const productsSchema = getProductsJsonLd(products);
+  const faqSchema = getFaqJsonLd();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <>
+      {/* Schema.org Structured Data Scripts */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productsSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
+      {/* Hero Section */}
+      <HeroSection />
+
+      {/* Main Catalog Section */}
+      <section id="catalogo" className="py-16 md:py-24 bg-ocean-950 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10 border-b border-slate-800 pb-8">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-semibold uppercase tracking-wider">
+                <Sparkles className="w-4 h-4" />
+                <span>Catálogo Técnico 2026</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                Equipamiento de Natación
+              </h2>
+              <p className="text-sm text-slate-400 max-w-xl">
+                Diseñado para reducir el coeficiente de fricción y potenciar la eficiencia hidrodinámica en cada brazada.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-300 bg-ocean-900 border border-slate-800 px-4 py-2 rounded-xl shrink-0">
+              <ShieldCheck className="w-4 h-4 text-cyan-400" />
+              <span>{total} Productos Disponibles</span>
+            </div>
+          </div>
+
+          {/* Dynamic Filters Bar */}
+          <ProductFilters
+            categories={categories}
+            currentCategory={currentCategory}
+            currentSort={currentSort}
+            finaOnly={finaOnly}
+          />
+
+          {/* Products Grid with Suspense */}
+          <Suspense fallback={<ProductGridSkeleton />}>
+            <ProductGrid products={products} />
+          </Suspense>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* FINA Technology Feature Banner */}
+      <section id="tecnologia" className="py-16 bg-gradient-to-r from-ocean-950 via-ocean-900 to-ocean-950 border-t border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="p-8 md:p-12 rounded-3xl glass-panel border border-cyan-500/30 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-8 space-y-4">
+              <span className="px-3 py-1 rounded-full bg-cyan-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider">
+                Certificación Internacional
+              </span>
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-white">
+                Homologación World Aquatics (FINA Approved)
+              </h3>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Cada uno de nuestros trajes TechSuit y gorros de silicona 3D pasa por pruebas de laboratorio en túneles de agua hidrodinámicos para certificar cero resistencia indeseada y 100% de cumplimiento reglamentario.
+              </p>
+            </div>
+            <div className="lg:col-span-4 flex justify-start lg:justify-end">
+              <div className="p-6 rounded-2xl bg-ocean-950 border border-cyan-400/40 text-center space-y-2 w-full max-w-xs shadow-xl">
+                <div className="text-3xl font-extrabold text-cyan-400">100%</div>
+                <div className="text-xs font-bold text-white uppercase tracking-wider">Garantía de Aprobación</div>
+                <p className="text-[11px] text-slate-400">Válido para campeonatos sudamericanos, panamericanos e internacionales.</p>
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* Testimonials & Social Proof */}
+      <TestimonialsSection />
+
+      {/* FAQ Accordion Section */}
+      <FAQSection />
+    </>
   );
 }
