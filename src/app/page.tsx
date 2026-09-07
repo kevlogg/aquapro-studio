@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import { getProducts } from '@/lib/dal/products';
-import { CategoryId } from '@/lib/types';
+import { getProducts, PRODUCTS, CATEGORIES } from '@/lib/dal/products';
+import { CategoryId, Product, Category } from '@/lib/types';
 import { HeroSection } from '@/components/sections/HeroSection';
 import { BrandFeatures } from '@/components/sections/BrandFeatures';
 import { CategoryShowcase } from '@/components/sections/CategoryShowcase';
@@ -12,6 +12,8 @@ import { ProductGridSkeleton } from '@/components/common/Skeletons';
 import { getWebSiteJsonLd, getProductsJsonLd, getFaqJsonLd } from '@/lib/seo/schemas';
 import { ShieldCheck, Sparkles } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
   searchParams: Promise<{
     category?: CategoryId;
@@ -22,7 +24,7 @@ interface PageProps {
 }
 
 export async function generateMetadata({ searchParams }: PageProps) {
-  const resolvedParams = await searchParams;
+  const resolvedParams = (await searchParams) || {};
   const category = resolvedParams.category;
 
   if (category && category !== 'all') {
@@ -40,11 +42,12 @@ export async function generateMetadata({ searchParams }: PageProps) {
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const resolvedParams = await searchParams;
+  const resolvedParams = (await searchParams) || {};
 
-  const currentCategory: CategoryId = resolvedParams.category || 'all';
+  const currentCategory: CategoryId = (resolvedParams.category as CategoryId) || 'all';
   const currentSearch = resolvedParams.search || '';
-  const currentSort = resolvedParams.sort || 'featured';
+  const currentSort: 'featured' | 'price-asc' | 'price-desc' | 'rating' =
+    (resolvedParams.sort as 'featured' | 'price-asc' | 'price-desc' | 'rating') || 'featured';
   const finaOnly = resolvedParams.fina === 'true';
 
   // Fetch data directly from Data Access Layer (DAL)

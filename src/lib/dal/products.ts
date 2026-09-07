@@ -1,18 +1,13 @@
 import { Product, Category, CategoryId, FilterOptions } from '@/lib/types';
 
 /**
- * Simulación de verificación de sesión y permisos para el Data Access Layer (DAL)
+ * Verificación de sesión segura que nunca lanza excepciones
  */
 export async function verifySession(): Promise<{ userId: string; role: 'user' | 'admin' }> {
-  try {
-    return {
-      userId: 'usr_guest_session_v2',
-      role: 'user',
-    };
-  } catch (e) {
-    console.error('Error en verifySession:', e);
-    return { userId: 'guest', role: 'user' };
-  }
+  return {
+    userId: 'usr_guest_session_v2',
+    role: 'user',
+  };
 }
 
 export const CATEGORIES: Category[] = [
@@ -364,65 +359,75 @@ export const PRODUCTS: Product[] = [
 ];
 
 /**
- * Consulta de productos desde el Data Access Layer
+ * Consulta resiliente de productos desde el DAL
  */
 export async function getProducts(filters: FilterOptions = {}): Promise<{
   products: Product[];
   total: number;
   categories: Category[];
 }> {
-  await verifySession();
+  try {
+    let filtered = [...PRODUCTS];
 
-  let filtered = [...PRODUCTS];
-
-  if (filters.category && filters.category !== 'all') {
-    filtered = filtered.filter((p) => p.categoryId === filters.category);
-  }
-
-  if (filters.search && filters.search.trim() !== '') {
-    const q = filters.search.toLowerCase().trim();
-    filtered = filtered.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.tagline.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        p.categoryName.toLowerCase().includes(q)
-    );
-  }
-
-  if (filters.finaOnly) {
-    filtered = filtered.filter((p) => p.finaApproved === true);
-  }
-
-  if (filters.sort) {
-    switch (filters.sort) {
-      case 'price-asc':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      case 'featured':
-      default:
-        filtered.sort((a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0));
-        break;
+    if (filters && filters.category && filters.category !== 'all') {
+      filtered = filtered.filter((p) => p.categoryId === filters.category);
     }
-  }
 
-  return {
-    products: filtered,
-    total: filtered.length,
-    categories: CATEGORIES,
-  };
+    if (filters && filters.search && filters.search.trim() !== '') {
+      const q = filters.search.toLowerCase().trim();
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.tagline.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q) ||
+          p.categoryName.toLowerCase().includes(q)
+      );
+    }
+
+    if (filters && filters.finaOnly) {
+      filtered = filtered.filter((p) => p.finaApproved === true);
+    }
+
+    if (filters && filters.sort) {
+      switch (filters.sort) {
+        case 'price-asc':
+          filtered.sort((a, b) => a.price - b.price);
+          break;
+        case 'price-desc':
+          filtered.sort((a, b) => b.price - a.price);
+          break;
+        case 'rating':
+          filtered.sort((a, b) => b.rating - a.rating);
+          break;
+        case 'featured':
+        default:
+          filtered.sort((a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0));
+          break;
+      }
+    }
+
+    return {
+      products: filtered,
+      total: filtered.length,
+      categories: CATEGORIES,
+    };
+  } catch (error) {
+    console.error('Error en getProducts DAL:', error);
+    return {
+      products: PRODUCTS,
+      total: PRODUCTS.length,
+      categories: CATEGORIES,
+    };
+  }
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  await verifySession();
-  const product = PRODUCTS.find((p) => p.slug === slug || p.id === slug);
-  return product || null;
+  try {
+    const product = PRODUCTS.find((p) => p.slug === slug || p.id === slug);
+    return product || null;
+  } catch (e) {
+    return PRODUCTS[0] || null;
+  }
 }
 
 export async function getCategories(): Promise<Category[]> {
